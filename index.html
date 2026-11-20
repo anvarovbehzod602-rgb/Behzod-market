@@ -3,55 +3,88 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#166534">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14532d">
 <title>Behzod Market</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f3f5f3;color:#17251b}
-header{background:#166534;color:white;padding:20px}
-header h2{margin:0 0 6px}
+body{margin:0;background:#f3f6f3;color:#17251b;font-family:Arial,sans-serif}
+header{background:#14532d;color:white;padding:20px}
+header h2{margin:0 0 5px}
 header p{margin:0;font-size:13px}
-main{padding:15px;max-width:700px;margin:auto}
-.search,input,button{font:inherit}
-.search{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;margin:12px 0}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.cat{background:white;border:1px solid #e3e9e4;border-radius:13px;padding:18px 8px;text-align:center;min-height:90px;font-weight:bold}
-.cat span{display:block;font-size:26px;margin-bottom:8px}
-button{border:0;border-radius:10px;padding:12px;background:#166534;color:white}
-.panel{background:white;padding:15px;border-radius:14px;margin-top:14px}
-.product{display:flex;gap:12px;align-items:center;background:white;padding:10px;border-radius:12px;margin:9px 0}
-.product img{width:75px;height:75px;object-fit:cover;border-radius:9px}
-.product button{padding:8px;font-size:12px}
-.small{font-size:12px;color:#66736a}
-.hidden{display:none}
+main{max-width:750px;margin:auto;padding:14px}
+input,button{font:inherit}
+button{border:0;border-radius:10px;padding:11px 13px;background:#166534;color:white;cursor:pointer}
+input[type=search]{width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.category{background:white;color:#17251b;border:1px solid #e1e9e2;padding:17px 7px;min-height:94px;font-weight:bold}
+.category span{display:block;font-size:25px;margin-bottom:7px}
+.panel{background:white;padding:14px;border-radius:14px;margin:12px 0}
+.hidden{display:none!important}
+.back{background:#475569;margin-bottom:12px}
+.product{background:white;border-radius:13px;padding:10px;margin:10px 0;display:flex;gap:11px;align-items:center}
+.product img{width:85px;height:85px;object-fit:cover;border-radius:9px}
+.product-info{flex:1;min-width:0}
+.product-info b{display:block;overflow-wrap:anywhere}
+.small{font-size:12px;color:#68756b;margin:5px 0}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.actions button{font-size:12px;padding:8px}
+.red{background:#b91c1c}
+.grey{background:#475569}
+.green{background:#166534}
+.empty{text-align:center;color:#66736a;padding:25px}
+h3{margin:12px 0}
+.topbuttons{display:flex;gap:8px;flex-wrap:wrap}
+.topbuttons button{flex:1}
+#photo{display:none}
+.notice{background:#fff7d6;border:1px solid #f1d98a;padding:12px;border-radius:10px;margin:10px 0;font-size:13px}
 </style>
 </head>
 <body>
 <header>
 <h2>🛍 Behzod Market</h2>
-<p>Mahsulotlar foto katalogi</p>
+<p>Mahsulotlar aqlli foto katalogi</p>
 </header>
 <main>
-<div id="home">
-<input class="search" id="search" placeholder="🔍 Bo‘lim yoki mahsulot qidirish">
+<section id="home">
+<input type="search" id="search" placeholder="🔍 Bo‘lim yoki mahsulot qidirish">
 <div class="grid" id="categories"></div>
-<div class="panel">
-<button onclick="showOut()">🧺 Tugagan mahsulotlar</button>
+<div class="panel topbuttons">
+<button onclick="showOut()">🧺 Tugaganlar</button>
+<button onclick="showBackup()">💾 Zaxira nusxa</button>
 </div>
-</div>
-<div id="inside" class="hidden">
-<button onclick="goHome()">← Orqaga</button>
+</section>
+
+<section id="inside" class="hidden">
+<button class="back" onclick="goHome()">← Orqaga</button>
 <h3 id="catTitle"></h3>
+<div class="panel">
+<button onclick="document.getElementById('photo').click()">📷 Surat qo‘shish</button>
 <input type="file" id="photo" accept="image/*" capture="environment">
+<p class="small">Mahsulot nomi va narxini yozish shart emas.</p>
+</div>
 <div id="products"></div>
-</div>
-<div id="out" class="hidden">
-<button onclick="goHome()">← Orqaga</button>
-<h3>Tugagan mahsulotlar</h3>
+</section>
+
+<section id="out" class="hidden">
+<button class="back" onclick="goHome()">← Orqaga</button>
+<h3>🧺 Tugagan mahsulotlar</h3>
 <div id="outList"></div>
+</section>
+
+<section id="backup" class="hidden">
+<button class="back" onclick="goHome()">← Orqaga</button>
+<h3>💾 Zaxira nusxa</h3>
+<div class="panel">
+<p>Mahsulotlar va suratlarni faylga saqlash yoki avvalgi nusxani tiklash.</p>
+<button onclick="exportBackup()">Zaxira nusxasini yuklab olish</button>
+<hr>
+<p class="small">Oldingi zaxira JSON faylini tanlang:</p>
+<input type="file" id="restoreFile" accept=".json,application/json">
 </div>
+</section>
 </main>
+
 <script>
 const names=[
 "Konstovar","O‘yinchoqlar","Parfyumeriya","Shampun va sovunlar",
@@ -64,23 +97,290 @@ const names=[
 "Ziravorlar","Gullar va tuvak gullar","Hushbo‘ylantiruvchilar",
 "Paynet","Pamperslar"
 ];
-let db=[];
-let current="";
 const emojis=["✏️","🧸","🌸","🧴","💍","🧵","🎀","🧦","👕","🧕","🎁","🎀","🧹","🥤","👖","🛍️","🎀","🏠","🍰","🎉","🌶️","🌷","🌺","📱","🍼"];
-function save(){localStorage.setItem("behzod-products",JSON.stringify(db))}
-function load(){try{db=JSON.parse(localStorage.getItem("behzod-products")||"[]")}catch(e){db=[]}}
+let db;
+let current="";
+let products=[];
+
+const request=indexedDB.open("BehzodMarketDB",1);
+request.onupgradeneeded=e=>{
+ const d=e.target.result;
+ if(!d.objectStoreNames.contains("products"))
+  d.createObjectStore("products",{keyPath:"id"});
+};
+request.onsuccess=async e=>{
+ db=e.target.result;
+ await migrateOldData();
+ await refresh();
+ drawCats();
+};
+request.onerror=()=>alert("Saqlash bazasi ochilmadi. Brauzerni qayta ochib ko‘ring.");
+
+function store(mode="readonly"){
+ return db.transaction("products",mode).objectStore("products");
+}
+function getAll(){
+ return new Promise((resolve,reject)=>{
+  const r=store().getAll();
+  r.onsuccess=()=>resolve(r.result||[]);
+  r.onerror=()=>reject(r.error);
+ });
+}
+function put(p){
+ return new Promise((resolve,reject)=>{
+  const r=store("readwrite").put(p);
+  r.onsuccess=()=>resolve();
+  r.onerror=()=>reject(r.error);
+ });
+}
+function remove(id){
+ return new Promise((resolve,reject)=>{
+  const r=store("readwrite").delete(id);
+  r.onsuccess=()=>resolve();
+  r.onerror=()=>reject(r.error);
+ });
+}
+async function refresh(){products=await getAll();}
+
+async function migrateOldData(){
+ try{
+  if(localStorage.getItem("behzod-migrated-v2"))return;
+  const old=JSON.parse(localStorage.getItem("behzod-products")||"[]");
+  const existing=await getAll();
+  if(existing.length===0 && old.length){
+   for(const p of old){
+    if(p.img){
+     await put({
+      id:p.id||Date.now()+Math.random(),
+      cat:p.cat||names[0],
+      name:p.name||"Mahsulot",
+      img:p.img,
+      out:!!p.out
+     });
+    }
+   }
+  }
+  localStorage.setItem("behzod-migrated-v2","yes");
+ }catch(e){
+  alert("Eski ma’lumotlarni ko‘chirishda muammo bo‘ldi. Eski brauzer ma’lumotlarini o‘chirmang.");
+ }
+}
+
 function drawCats(filter=""){
-let el=document.getElementById("categories");el.innerHTML="";
-names.forEach((n,i)=>{if(n.toLowerCase().includes(filter.toLowerCase())){let b=document.createElement("button");b.className="cat";b.style.color="#17251b";b.innerHTML="<span>"+emojis[i]+"</span>"+n;b.onclick=()=>openCat(n);el.appendChild(b)}})}
-function goHome(){home.classList.remove("hidden");inside.classList.add("hidden");out.classList.add("hidden");drawCats(search.value)}
-function openCat(n){current=n;home.classList.add("hidden");out.classList.add("hidden");inside.classList.remove("hidden");catTitle.textContent=n;drawProducts()}
-function drawProducts(){products.innerHTML="";db.filter(p=>p.cat===current&&!p.out).forEach(p=>{let d=document.createElement("div");d.className="product";d.innerHTML=`<img src="${p.img}"><div style="flex:1"><b>${p.name}</b><div class="small">${p.cat}</div><button onclick="toggleOut(${p.id})">Tugadi</button></div>`;products.appendChild(d)})}
-photo.onchange=async()=>{let f=photo.files[0];if(!f)return;let img=await resize(f);db.push({id:Date.now(),cat:current,name:f.name,img,out:false});save();photo.value="";drawProducts()}
-function resize(file){return new Promise(resolve=>{let r=new FileReader();r.onload=e=>{let im=new Image();im.onload=()=>{let c=document.createElement("canvas");let s=Math.min(1,700/Math.max(im.width,im.height));c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",.72))};im.src=e.target.result};r.readAsDataURL(file)})}
-function toggleOut(id){let p=db.find(x=>x.id===id);p.out=!p.out;save();drawProducts()}
-function showOut(){home.classList.add("hidden");inside.classList.add("hidden");out.classList.remove("hidden");outList.innerHTML="";db.filter(p=>p.out).forEach(p=>{let d=document.createElement("div");d.className="product";d.innerHTML=`<img src="${p.img}"><div style="flex:1"><b>${p.name}</b><div class="small">${p.cat}</div><button onclick="toggleOut(${p.id});showOut()">Qayta keldi</button></div>`;outList.appendChild(d)})}
-search.oninput=()=>drawCats(search.value);
-load();drawCats();
+ const el=document.getElementById("categories");
+ el.innerHTML="";
+ names.forEach((n,i)=>{
+  if(n.toLowerCase().includes(filter.toLowerCase())){
+   const b=document.createElement("button");
+   b.className="category";
+   b.innerHTML="<span>"+emojis[i]+"</span>"+n;
+   b.onclick=()=>openCat(n);
+   el.appendChild(b);
+  }
+ });
+}
+function hideAll(){
+ ["home","inside","out","backup"].forEach(id=>
+  document.getElementById(id).classList.add("hidden"));
+}
+function goHome(){
+ hideAll();
+ home.classList.remove("hidden");
+ drawCats(search.value);
+}
+function openCat(n){
+ current=n;
+ hideAll();
+ inside.classList.remove("hidden");
+ catTitle.textContent=n;
+ drawProducts();
+}
+function makeProduct(p,container,mode){
+ const d=document.createElement("div");
+ d.className="product";
+ const img=document.createElement("img");
+ img.src=p.img;
+ const info=document.createElement("div");
+ info.className="product-info";
+ const title=document.createElement("b");
+ title.textContent=p.name||"Mahsulot";
+ const cat=document.createElement("div");
+ cat.className="small";
+ cat.textContent=p.cat;
+ const actions=document.createElement("div");
+ actions.className="actions";
+
+ if(mode==="out"){
+  const back=document.createElement("button");
+  back.textContent="Qayta keldi";
+  back.onclick=async()=>{p.out=false;await put(p);await showOut()};
+  actions.append(back);
+ }else{
+  const done=document.createElement("button");
+  done.textContent="Tugadi";
+  done.onclick=async()=>{p.out=true;await put(p);await drawProducts()};
+  actions.append(done);
+ }
+ const del=document.createElement("button");
+ del.className="red";
+ del.textContent="O‘chirish";
+ del.onclick=async()=>{
+  if(confirm("Mahsulotni butunlay o‘chirasizmi?")){
+   await remove(p.id);
+   if(mode==="out")await showOut();else await drawProducts();
+  }
+ };
+ actions.append(del);
+ info.append(title,cat,actions);
+ d.append(img,info);
+ container.append(d);
+}
+async function drawProducts(){
+ await refresh();
+ products.filter(p=>p.cat===current&&!p.out)
+ .forEach(p=>makeProduct(p,document.getElementById("products"),"in"));
+ const el=document.getElementById("products");
+ el.innerHTML="";
+ products.filter(p=>p.cat===current&&!p.out)
+ .forEach(p=>makeProduct(p,el,"in"));
+ if(!el.children.length)el.innerHTML='<div class="empty">Bu bo‘limda mahsulot yo‘q.</div>';
+}
+async function showOut(){
+ hideAll();out.classList.remove("hidden");
+ await refresh();
+ const el=document.getElementById("outList");el.innerHTML="";
+ products.filter(p=>p.out).forEach(p=>makeProduct(p,el,"out"));
+ if(!el.children.length)el.innerHTML='<div class="empty">Tugagan mahsulot yo‘q.</div>';
+}
+
+// Tasvirning kichik rangli nusxasini hisoblash
+function imageFeature(data){
+ return new Promise(resolve=>{
+  const im=new Image();
+  im.onload=()=>{
+   const c=document.createElement("canvas");
+   c.width=12;c.height=12;
+   const ctx=c.getContext("2d");
+   ctx.drawImage(im,0,0,12,12);
+   const px=ctx.getImageData(0,0,12,12).data;
+   const a=[];
+   for(let i=0;i<px.length;i+=4){
+    a.push(px[i]/255,px[i+1]/255,px[i+2]/255);
+   }
+   resolve(a);
+  };
+  im.onerror=()=>resolve([]);
+  im.src=data;
+ });
+}
+function similarity(a,b){
+ if(!a||!b||a.length!==b.length||!a.length)return 0;
+ let sum=0;
+ for(let i=0;i<a.length;i++)sum+=Math.abs(a[i]-b[i]);
+ return 1-sum/a.length;
+}
+function resize(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=e=>{
+   const im=new Image();
+   im.onload=()=>{
+    const c=document.createElement("canvas");
+    const scale=Math.min(1,1000/Math.max(im.width,im.height));
+    c.width=Math.round(im.width*scale);
+    c.height=Math.round(im.height*scale);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    resolve(c.toDataURL("image/jpeg",.78));
+   };
+   im.onerror=reject;
+   im.src=e.target.result;
+  };
+  reader.onerror=reject;
+  reader.readAsDataURL(file);
+ });
+}
+photo.onchange=async()=>{
+ const f=photo.files[0];
+ if(!f)return;
+ try{
+  const data=await resize(f);
+  const feature=await imageFeature(data);
+  await refresh();
+  let best=0,bestProduct=null;
+  for(const p of products){
+   if(p.cat!==current)continue;
+   const oldFeature=p.feature||await imageFeature(p.img);
+   const score=similarity(feature,oldFeature);
+   if(score>best){best=score;bestProduct=p;}
+  }
+  if(best>.91 && bestProduct){
+   const yes=confirm("Diqqat! Bu bo‘limda o‘xshash surat mavjud bo‘lishi mumkin. Baribir yangi mahsulot sifatida qo‘shasizmi?");
+   if(!yes){photo.value="";return;}
+  }
+  await put({
+   id:Date.now()+Math.random(),
+   cat:current,
+   name:"Mahsulot",
+   img:data,
+   feature:feature,
+   out:false
+  });
+  await drawProducts();
+  alert("Mahsulot saqlandi!");
+ }catch(e){
+  alert("Suratni qo‘shib bo‘lmadi. Boshqa suratni sinab ko‘ring.");
+ }
+ photo.value="";
+};
+
+search.oninput=async()=>{
+ const q=search.value.toLowerCase().trim();
+ if(!q){drawCats();return;}
+ await refresh();
+ const matching=products.filter(p=>
+  (p.cat||"").toLowerCase().includes(q)||
+  (p.name||"").toLowerCase().includes(q)
+ );
+ const el=document.getElementById("categories");
+ el.innerHTML="";
+ matching.forEach(p=>{
+  const b=document.createElement("button");
+  b.className="category";
+  b.textContent="📦 "+p.cat+" — "+p.name;
+  b.onclick=()=>openCat(p.cat);
+  el.append(b);
+ });
+ if(!matching.length)drawCats(q);
+};
+
+function showBackup(){
+ hideAll();backup.classList.remove("hidden");
+}
+async function exportBackup(){
+ await refresh();
+ const blob=new Blob([JSON.stringify({
+  app:"Behzod Market",version:2,products
+ })],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download="BehzodMarket_zaxira.json";
+ a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+restoreFile.onchange=async()=>{
+ const f=restoreFile.files[0];if(!f)return;
+ try{
+  const data=JSON.parse(await f.text());
+  if(!Array.isArray(data.products))throw Error();
+  if(!confirm("Zaxira nusxasidagi mahsulotlar mavjudlariga qo‘shilsinmi?"))return;
+  for(const p of data.products){
+   if(p.img)await put({...p,id:Date.now()+Math.random()});
+  }
+  await refresh();
+  alert("Zaxira nusxasi tiklandi.");
+ }catch(e){alert("Bu zaxira fayli noto‘g‘ri yoki buzilgan.");}
+ restoreFile.value="";
+};
 </script>
 </body>
 </html>
