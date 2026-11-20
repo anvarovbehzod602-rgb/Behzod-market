@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#166534">
+<title>Behzod Market</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f5f3;color:#17251b}
+header{background:#166534;color:white;padding:20px}
+header h2{margin:0 0 6px}
+header p{margin:0;font-size:13px}
+main{padding:15px;max-width:700px;margin:auto}
+.search,input,button{font:inherit}
+.search{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cat{background:white;border:1px solid #e3e9e4;border-radius:13px;padding:18px 8px;text-align:center;min-height:90px;font-weight:bold}
+.cat span{display:block;font-size:26px;margin-bottom:8px}
+button{border:0;border-radius:10px;padding:12px;background:#166534;color:white}
+.panel{background:white;padding:15px;border-radius:14px;margin-top:14px}
+.product{display:flex;gap:12px;align-items:center;background:white;padding:10px;border-radius:12px;margin:9px 0}
+.product img{width:75px;height:75px;object-fit:cover;border-radius:9px}
+.product button{padding:8px;font-size:12px}
+.small{font-size:12px;color:#66736a}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+<h2>🛍 Behzod Market</h2>
+<p>Mahsulotlar foto katalogi</p>
+</header>
+<main>
+<div id="home">
+<input class="search" id="search" placeholder="🔍 Bo‘lim yoki mahsulot qidirish">
+<div class="grid" id="categories"></div>
+<div class="panel">
+<button onclick="showOut()">🧺 Tugagan mahsulotlar</button>
+</div>
+</div>
+<div id="inside" class="hidden">
+<button onclick="goHome()">← Orqaga</button>
+<h3 id="catTitle"></h3>
+<input type="file" id="photo" accept="image/*" capture="environment">
+<div id="products"></div>
+</div>
+<div id="out" class="hidden">
+<button onclick="goHome()">← Orqaga</button>
+<h3>Tugagan mahsulotlar</h3>
+<div id="outList"></div>
+</div>
+</main>
+<script>
+const names=[
+"Konstovar","O‘yinchoqlar","Parfyumeriya","Shampun va sovunlar",
+"Aksessuarlar","Chevarchilik mahsulotlari","Zakolkalar","Paypoqlar",
+"Komplektlar","Ro‘mollar","Sovg‘alar","Ko‘rmana narsalar",
+"Xo‘jalik mahsulotlari","Plastmassa va bir martalik idishlar",
+"Remenlar","Salafan va sumkalar","Sovg‘a o‘rash mahsulotlari",
+"Uy-ro‘zg‘or buyumlari, asboblar va elektr jihozlari",
+"To‘r va pishiriq mahsulotlari","Tug‘ilgan kun va bayram buyumlari",
+"Ziravorlar","Gullar va tuvak gullar","Hushbo‘ylantiruvchilar",
+"Paynet","Pamperslar"
+];
+let db=[];
+let current="";
+const emojis=["✏️","🧸","🌸","🧴","💍","🧵","🎀","🧦","👕","🧕","🎁","🎀","🧹","🥤","👖","🛍️","🎀","🏠","🍰","🎉","🌶️","🌷","🌺","📱","🍼"];
+function save(){localStorage.setItem("behzod-products",JSON.stringify(db))}
+function load(){try{db=JSON.parse(localStorage.getItem("behzod-products")||"[]")}catch(e){db=[]}}
+function drawCats(filter=""){
+let el=document.getElementById("categories");el.innerHTML="";
+names.forEach((n,i)=>{if(n.toLowerCase().includes(filter.toLowerCase())){let b=document.createElement("button");b.className="cat";b.style.color="#17251b";b.innerHTML="<span>"+emojis[i]+"</span>"+n;b.onclick=()=>openCat(n);el.appendChild(b)}})}
+function goHome(){home.classList.remove("hidden");inside.classList.add("hidden");out.classList.add("hidden");drawCats(search.value)}
+function openCat(n){current=n;home.classList.add("hidden");out.classList.add("hidden");inside.classList.remove("hidden");catTitle.textContent=n;drawProducts()}
+function drawProducts(){products.innerHTML="";db.filter(p=>p.cat===current&&!p.out).forEach(p=>{let d=document.createElement("div");d.className="product";d.innerHTML=`<img src="${p.img}"><div style="flex:1"><b>${p.name}</b><div class="small">${p.cat}</div><button onclick="toggleOut(${p.id})">Tugadi</button></div>`;products.appendChild(d)})}
+photo.onchange=async()=>{let f=photo.files[0];if(!f)return;let img=await resize(f);db.push({id:Date.now(),cat:current,name:f.name,img,out:false});save();photo.value="";drawProducts()}
+function resize(file){return new Promise(resolve=>{let r=new FileReader();r.onload=e=>{let im=new Image();im.onload=()=>{let c=document.createElement("canvas");let s=Math.min(1,700/Math.max(im.width,im.height));c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",.72))};im.src=e.target.result};r.readAsDataURL(file)})}
+function toggleOut(id){let p=db.find(x=>x.id===id);p.out=!p.out;save();drawProducts()}
+function showOut(){home.classList.add("hidden");inside.classList.add("hidden");out.classList.remove("hidden");outList.innerHTML="";db.filter(p=>p.out).forEach(p=>{let d=document.createElement("div");d.className="product";d.innerHTML=`<img src="${p.img}"><div style="flex:1"><b>${p.name}</b><div class="small">${p.cat}</div><button onclick="toggleOut(${p.id});showOut()">Qayta keldi</button></div>`;outList.appendChild(d)})}
+search.oninput=()=>drawCats(search.value);
+load();drawCats();
+</script>
+</body>
+</html>
