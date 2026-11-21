@@ -299,7 +299,99 @@ function resize(file){
   reader.readAsDataURL(file);
  });
 }
+
 photo.onchange=async()=>{
+  const f=photo.files[0];
+  if(!f)return;
+
+  try{
+    const data=await resize(f);
+    const feature=await imageFeature(data);
+
+    await refresh();
+
+    let best=0,bestProduct=null;
+
+    for(const p of products){
+      if(p.cat!==current)continue;
+      const oldFeature=p.feature||await imageFeature(p.img);
+      const score=similarity(feature,oldFeature);
+      if(score>best){
+        best=score;
+        bestProduct=p;
+      }
+    }
+
+    if(best>.91 && bestProduct){
+      const yes=confirm(
+        "Diqqat! O‘xshash surat mavjud. Baribir qo‘shasizmi?"
+      );
+      if(!yes){
+        photo.value="";
+        return;
+      }
+    }
+
+    let aiAnalysis="";
+
+    try{
+      const response=await fetch(BACKEND_URL,{
+        method:"POST",
+        headers:{
+          "Content-Type":"text/plain;charset=utf-8"
+        },
+        body:JSON.stringify({
+          imageBase64:data,
+          mimeType:"image/jpeg"
+        })
+      });
+
+      const result=JSON.parse(await response.text());
+
+      if(!result.ok){
+        throw new Error(result.error||"Gemini xatosi");
+      }
+
+      aiAnalysis=result.analysis;
+
+    }catch(aiError){
+      if(!confirm(
+        "Gemini bilan aloqa bo‘lmadi: "+
+        aiError.message+
+        "\n\nSuratni AI-siz saqlaymizmi?"
+      )){
+        photo.value="";
+        return;
+      }
+    }
+
+    await put({
+      id:Date.now()+Math.random(),
+      cat:current,
+      name:aiAnalysis
+        ? aiAnalysis.split("\n")[0].slice(0,70)
+        : "Mahsulot",
+      aiAnalysis:aiAnalysis,
+      img:data,
+      feature:feature,
+      out:false
+    });
+
+    await drawProducts();
+
+    if(aiAnalysis){
+      alert("Gemini tahlili:\n\n"+aiAnalysis+"\n\nMahsulot saqlandi!");
+    }else{
+      alert("Mahsulot AI-siz saqlandi.");
+    }
+
+  }catch(e){
+    alert("Xatolik: "+e.message);
+  }
+
+  photo.value="";
+};
+
  const f=photo.files[0];
  if(!f)return;
  try{
