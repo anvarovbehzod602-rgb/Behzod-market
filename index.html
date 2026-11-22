@@ -299,29 +299,6 @@ function resize(file){
   reader.readAsDataURL(file);
  });
 }
-
-photo.onchange=async()=>{
-  const f=photo.files[0];
-  if(!f)return;
-
-  try{
-    const data=await resize(f);
-    const feature=await imageFeature(data);
-
-    await refresh();
-
-    let best=0,bestProduct=null;
-
-    for(const p of products){
-      if(p.cat!==current)continue;
-      const oldFeature=p.feature||await imageFeature(p.img);
-      const score=similarity(feature,oldFeature);
-      if(score>best){
-        best=score;
-        bestProduct=p;
-      }
-    }
-
     if(best>.91 && bestProduct){
       const yes=confirm(
         "Diqqat! O‘xshash surat mavjud. Baribir qo‘shasizmi?"
