@@ -3,7 +3,7 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14532d">
 <title>Behzod Market</title>
 <style>
@@ -13,8 +13,9 @@ header{background:#14532d;color:white;padding:20px}
 header h2{margin:0 0 5px}
 header p{margin:0;font-size:13px}
 main{max-width:750px;margin:auto;padding:14px}
-input,button{font:inherit}
+button,input{font:inherit}
 button{border:0;border-radius:10px;padding:11px 13px;background:#166534;color:white;cursor:pointer}
+button:disabled{opacity:.5}
 input[type=search]{width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;margin:12px 0}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .category{background:white;color:#17251b;border:1px solid #e1e9e2;padding:17px 7px;min-height:94px;font-weight:bold}
@@ -31,13 +32,13 @@ input[type=search]{width:100%;padding:14px;border:1px solid #ddd;border-radius:1
 .actions button{font-size:12px;padding:8px}
 .red{background:#b91c1c}
 .grey{background:#475569}
-.green{background:#166534}
 .empty{text-align:center;color:#66736a;padding:25px}
 h3{margin:12px 0}
 .topbuttons{display:flex;gap:8px;flex-wrap:wrap}
 .topbuttons button{flex:1}
 #photo{display:none}
 .notice{background:#fff7d6;border:1px solid #f1d98a;padding:12px;border-radius:10px;margin:10px 0;font-size:13px}
+.status{font-size:13px;color:#166534;padding:8px 0}
 </style>
 </head>
 <body>
@@ -45,6 +46,7 @@ h3{margin:12px 0}
 <h2>🛍 Behzod Market</h2>
 <p>Mahsulotlar aqlli foto katalogi</p>
 </header>
+
 <main>
 <section id="home">
 <input type="search" id="search" placeholder="🔍 Bo‘lim yoki mahsulot qidirish">
@@ -61,7 +63,8 @@ h3{margin:12px 0}
 <div class="panel">
 <button onclick="document.getElementById('photo').click()">📷 Surat qo‘shish</button>
 <input type="file" id="photo" accept="image/*" capture="environment">
-<p class="small">Mahsulot nomi va narxini yozish shart emas.</p>
+<p class="small">Kamera yoki galereyadan surat tanlang. Nom va narx yozish shart emas.</p>
+<div id="uploadStatus" class="status"></div>
 </div>
 <div id="products"></div>
 </section>
@@ -79,13 +82,15 @@ h3{margin:12px 0}
 <p>Mahsulotlar va suratlarni faylga saqlash yoki avvalgi nusxani tiklash.</p>
 <button onclick="exportBackup()">Zaxira nusxasini yuklab olish</button>
 <hr>
-<p class="small">Oldingi zaxira JSON faylini tanlang:</p>
+<p class="small">Avvalgi zaxira JSON faylini tanlang:</p>
 <input type="file" id="restoreFile" accept=".json,application/json">
 </div>
 </section>
 </main>
 
 <script>
+"use strict";
+
 const names=[
 "Konstovar","O‘yinchoqlar","Parfyumeriya","Shampun va sovunlar",
 "Aksessuarlar","Chevarchilik mahsulotlari","Zakolkalar","Paypoqlar",
@@ -97,28 +102,49 @@ const names=[
 "Ziravorlar","Gullar va tuvak gullar","Hushbo‘ylantiruvchilar",
 "Paynet","Pamperslar"
 ];
-const emojis=["✏️","🧸","🌸","🧴","💍","🧵","🎀","🧦","👕","🧕","🎁","🎀","🧹","🥤","👖","🛍️","🎀","🏠","🍰","🎉","🌶️","🌷","🌺","📱","🍼"];
-let db;
+
+const emojis=[
+"✏️","🧸","🌸","🧴","💍","🧵","🎀","🧦","👕","🧕",
+"🎁","🎀","🧹","🥤","👖","🛍️","🎀","🏠","🍰","🎉",
+"🌶️","🌷","🌺","📱","🍼"
+];
+
+const BACKEND_URL="https://script.google.com/macros/s/AKfycbzk2hWITuTcoiZee44DQfzE-XLqY9DgOgMQ8RQ6rfuDCAY_2Yex3SmQG3IcD-WdM-sF/exec";
+
+const $=id=>document.getElementById(id);
+let db=null;
 let current="";
 let products=[];
 
 const request=indexedDB.open("BehzodMarketDB",1);
+
 request.onupgradeneeded=e=>{
  const d=e.target.result;
- if(!d.objectStoreNames.contains("products"))
+ if(!d.objectStoreNames.contains("products")){
   d.createObjectStore("products",{keyPath:"id"});
+ }
 };
+
 request.onsuccess=async e=>{
  db=e.target.result;
- await migrateOldData();
- await refresh();
- drawCats();
+ try{
+  await migrateOldData();
+  await refresh();
+  drawCats();
+ }catch(err){
+  alert("Ma’lumotlarni ochishda xatolik: "+err.message);
+ }
 };
-request.onerror=()=>alert("Saqlash bazasi ochilmadi. Brauzerni qayta ochib ko‘ring.");
+
+request.onerror=()=>{
+ alert("Saqlash bazasi ochilmadi. Brauzer ma’lumotlarini o‘chirmang.");
+};
 
 function store(mode="readonly"){
+ if(!db)throw new Error("Ma’lumotlar bazasi hali tayyor emas");
  return db.transaction("products",mode).objectStore("products");
 }
+
 function getAll(){
  return new Promise((resolve,reject)=>{
   const r=store().getAll();
@@ -126,6 +152,7 @@ function getAll(){
   r.onerror=()=>reject(r.error);
  });
 }
+
 function put(p){
  return new Promise((resolve,reject)=>{
   const r=store("readwrite").put(p);
@@ -133,6 +160,7 @@ function put(p){
   r.onerror=()=>reject(r.error);
  });
 }
+
 function remove(id){
  return new Promise((resolve,reject)=>{
   const r=store("readwrite").delete(id);
@@ -140,14 +168,19 @@ function remove(id){
   r.onerror=()=>reject(r.error);
  });
 }
-async function refresh(){products=await getAll();}
+
+async function refresh(){
+ products=await getAll();
+}
 
 async function migrateOldData(){
  try{
   if(localStorage.getItem("behzod-migrated-v2"))return;
+
   const old=JSON.parse(localStorage.getItem("behzod-products")||"[]");
   const existing=await getAll();
-  if(existing.length===0 && old.length){
+
+  if(existing.length===0&&old.length){
    for(const p of old){
     if(p.img){
      await put({
@@ -155,302 +188,410 @@ async function migrateOldData(){
       cat:p.cat||names[0],
       name:p.name||"Mahsulot",
       img:p.img,
-      out:!!p.out
+      out:!!p.out,
+      feature:p.feature||null
      });
     }
    }
   }
+
   localStorage.setItem("behzod-migrated-v2","yes");
  }catch(e){
-  alert("Eski ma’lumotlarni ko‘chirishda muammo bo‘ldi. Eski brauzer ma’lumotlarini o‘chirmang.");
+  alert("Eski ma’lumotlarni ko‘chirishda muammo bo‘ldi. Eski ma’lumotlarni o‘chirmang.");
  }
 }
 
+function hideAll(){
+ ["home","inside","out","backup"].forEach(id=>{
+  $(id).classList.add("hidden");
+ });
+}
+
+function goHome(){
+ hideAll();
+ $("home").classList.remove("hidden");
+ drawCats($("search").value);
+}
+
 function drawCats(filter=""){
- const el=document.getElementById("categories");
+ const el=$("categories");
  el.innerHTML="";
+
  names.forEach((n,i)=>{
   if(n.toLowerCase().includes(filter.toLowerCase())){
    const b=document.createElement("button");
    b.className="category";
-   b.innerHTML="<span>"+emojis[i]+"</span>"+n;
+   const icon=document.createElement("span");
+   icon.textContent=emojis[i];
+   b.append(icon,document.createTextNode(n));
    b.onclick=()=>openCat(n);
-   el.appendChild(b);
+   el.append(b);
   }
  });
 }
-function hideAll(){
- ["home","inside","out","backup"].forEach(id=>
-  document.getElementById(id).classList.add("hidden"));
-}
-function goHome(){
- hideAll();
- home.classList.remove("hidden");
- drawCats(search.value);
-}
+
 function openCat(n){
  current=n;
  hideAll();
- inside.classList.remove("hidden");
- catTitle.textContent=n;
+ $("inside").classList.remove("hidden");
+ $("catTitle").textContent=n;
  drawProducts();
 }
+
 function makeProduct(p,container,mode){
  const d=document.createElement("div");
  d.className="product";
+
  const img=document.createElement("img");
  img.src=p.img;
+ img.alt=p.name||"Mahsulot";
+
  const info=document.createElement("div");
  info.className="product-info";
+
  const title=document.createElement("b");
  title.textContent=p.name||"Mahsulot";
+
  const cat=document.createElement("div");
  cat.className="small";
- cat.textContent=p.cat;
+ cat.textContent=p.cat||"";
+
  const actions=document.createElement("div");
  actions.className="actions";
 
  if(mode==="out"){
   const back=document.createElement("button");
   back.textContent="Qayta keldi";
-  back.onclick=async()=>{p.out=false;await put(p);await showOut()};
+  back.onclick=async()=>{
+   p.out=false;
+   await put(p);
+   await showOut();
+  };
   actions.append(back);
  }else{
   const done=document.createElement("button");
   done.textContent="Tugadi";
-  done.onclick=async()=>{p.out=true;await put(p);await drawProducts()};
+  done.onclick=async()=>{
+   p.out=true;
+   await put(p);
+   await drawProducts();
+  };
   actions.append(done);
  }
+
  const del=document.createElement("button");
  del.className="red";
  del.textContent="O‘chirish";
  del.onclick=async()=>{
   if(confirm("Mahsulotni butunlay o‘chirasizmi?")){
    await remove(p.id);
-   if(mode==="out")await showOut();else await drawProducts();
+   if(mode==="out")await showOut();
+   else await drawProducts();
   }
  };
+
  actions.append(del);
  info.append(title,cat,actions);
  d.append(img,info);
  container.append(d);
 }
+
 async function drawProducts(){
  await refresh();
- products.filter(p=>p.cat===current&&!p.out)
- .forEach(p=>makeProduct(p,document.getElementById("products"),"in"));
- const el=document.getElementById("products");
+ const el=$("products");
  el.innerHTML="";
- products.filter(p=>p.cat===current&&!p.out)
- .forEach(p=>makeProduct(p,el,"in"));
- if(!el.children.length)el.innerHTML='<div class="empty">Bu bo‘limda mahsulot yo‘q.</div>';
-}
-async function showOut(){
- hideAll();out.classList.remove("hidden");
- await refresh();
- const el=document.getElementById("outList");el.innerHTML="";
- products.filter(p=>p.out).forEach(p=>makeProduct(p,el,"out"));
- if(!el.children.length)el.innerHTML='<div class="empty">Tugagan mahsulot yo‘q.</div>';
+
+ const list=products.filter(p=>p.cat===current&&!p.out);
+ list.forEach(p=>makeProduct(p,el,"in"));
+
+ if(!list.length){
+  el.innerHTML='<div class="empty">Bu bo‘limda mahsulot yo‘q.</div>';
+ }
 }
 
-// Tasvirning kichik rangli nusxasini hisoblash
+async function showOut(){
+ hideAll();
+ $("out").classList.remove("hidden");
+ await refresh();
+
+ const el=$("outList");
+ el.innerHTML="";
+
+ const list=products.filter(p=>p.out);
+ list.forEach(p=>makeProduct(p,el,"out"));
+
+ if(!list.length){
+  el.innerHTML='<div class="empty">Tugagan mahsulot yo‘q.</div>';
+ }
+}
+
 function imageFeature(data){
  return new Promise(resolve=>{
   const im=new Image();
+
   im.onload=()=>{
    const c=document.createElement("canvas");
-   c.width=12;c.height=12;
+   c.width=12;
+   c.height=12;
+
    const ctx=c.getContext("2d");
    ctx.drawImage(im,0,0,12,12);
+
    const px=ctx.getImageData(0,0,12,12).data;
    const a=[];
+
    for(let i=0;i<px.length;i+=4){
     a.push(px[i]/255,px[i+1]/255,px[i+2]/255);
    }
+
    resolve(a);
   };
+
   im.onerror=()=>resolve([]);
   im.src=data;
  });
 }
+
 function similarity(a,b){
  if(!a||!b||a.length!==b.length||!a.length)return 0;
+
  let sum=0;
- for(let i=0;i<a.length;i++)sum+=Math.abs(a[i]-b[i]);
+ for(let i=0;i<a.length;i++){
+  sum+=Math.abs(a[i]-b[i]);
+ }
+
  return 1-sum/a.length;
 }
+
 function resize(file){
  return new Promise((resolve,reject)=>{
   const reader=new FileReader();
+
   reader.onload=e=>{
    const im=new Image();
+
    im.onload=()=>{
     const c=document.createElement("canvas");
     const scale=Math.min(1,1000/Math.max(im.width,im.height));
+
     c.width=Math.round(im.width*scale);
     c.height=Math.round(im.height*scale);
+
     c.getContext("2d").drawImage(im,0,0,c.width,c.height);
     resolve(c.toDataURL("image/jpeg",.78));
    };
+
    im.onerror=reject;
    im.src=e.target.result;
   };
+
   reader.onerror=reject;
   reader.readAsDataURL(file);
  });
 }
-    if(best>.91 && bestProduct){
-      const yes=confirm(
-        "Diqqat! O‘xshash surat mavjud. Baribir qo‘shasizmi?"
-      );
-      if(!yes){
-        photo.value="";
-        return;
-      }
-    }
 
-    let aiAnalysis="";
+async function analyzeWithGemini(data){
+ const response=await fetch(BACKEND_URL,{
+  method:"POST",
+  headers:{
+   "Content-Type":"text/plain;charset=utf-8"
+  },
+  body:JSON.stringify({
+   imageBase64:data,
+   mimeType:"image/jpeg"
+  })
+ });
 
-    try{
-      const response=await fetch(BACKEND_URL,{
-        method:"POST",
-        headers:{
-          "Content-Type":"text/plain;charset=utf-8"
-        },
-        body:JSON.stringify({
-          imageBase64:data,
-          mimeType:"image/jpeg"
-        })
-      });
+ const result=JSON.parse(await response.text());
 
-      const result=JSON.parse(await response.text());
+ if(!result.ok){
+  throw new Error(result.error||"Gemini xatosi");
+ }
 
-      if(!result.ok){
-        throw new Error(result.error||"Gemini xatosi");
-      }
+ return result.analysis||"Mahsulot tahlil qilindi.";
+}
 
-      aiAnalysis=result.analysis;
+$("photo").onchange=async()=>{
+ const file=$("photo").files[0];
+ if(!file)return;
 
-    }catch(aiError){
-      if(!confirm(
-        "Gemini bilan aloqa bo‘lmadi: "+
-        aiError.message+
-        "\n\nSuratni AI-siz saqlaymizmi?"
-      )){
-        photo.value="";
-        return;
-      }
-    }
+ const status=$("uploadStatus");
+ status.textContent="Surat tayyorlanmoqda...";
 
-    await put({
-      id:Date.now()+Math.random(),
-      cat:current,
-      name:aiAnalysis
-        ? aiAnalysis.split("\n")[0].slice(0,70)
-        : "Mahsulot",
-      aiAnalysis:aiAnalysis,
-      img:data,
-      feature:feature,
-      out:false
-    });
-
-    await drawProducts();
-
-    if(aiAnalysis){
-      alert("Gemini tahlili:\n\n"+aiAnalysis+"\n\nMahsulot saqlandi!");
-    }else{
-      alert("Mahsulot AI-siz saqlandi.");
-    }
-
-  }catch(e){
-    alert("Xatolik: "+e.message);
-  }
-
-  photo.value="";
-};
-
- const f=photo.files[0];
- if(!f)return;
  try{
-  const data=await resize(f);
+  const data=await resize(file);
   const feature=await imageFeature(data);
+
   await refresh();
-  let best=0,bestProduct=null;
+
+  let best=0;
+  let bestProduct=null;
+
   for(const p of products){
    if(p.cat!==current)continue;
+
    const oldFeature=p.feature||await imageFeature(p.img);
    const score=similarity(feature,oldFeature);
-   if(score>best){best=score;bestProduct=p;}
+
+   if(score>best){
+    best=score;
+    bestProduct=p;
+   }
   }
-  if(best>.91 && bestProduct){
-   const yes=confirm("Diqqat! Bu bo‘limda o‘xshash surat mavjud bo‘lishi mumkin. Baribir yangi mahsulot sifatida qo‘shasizmi?");
-   if(!yes){photo.value="";return;}
+
+  if(best>.91&&bestProduct){
+   const yes=confirm(
+    "Diqqat! Bu bo‘limda o‘xshash surat mavjud. Baribir qo‘shasizmi?"
+   );
+
+   if(!yes){
+    status.textContent="";
+    $("photo").value="";
+    return;
+   }
   }
+
+  status.textContent="Gemini mahsulotni tahlil qilmoqda...";
+
+  let aiAnalysis="";
+
+  try{
+   aiAnalysis=await analyzeWithGemini(data);
+  }catch(aiError){
+   const yes=confirm(
+    "Gemini bilan aloqa bo‘lmadi: "+aiError.message+
+    "\n\nSuratni AI-siz saqlaymizmi?"
+   );
+
+   if(!yes){
+    status.textContent="";
+    $("photo").value="";
+    return;
+   }
+  }
+
   await put({
    id:Date.now()+Math.random(),
    cat:current,
-   name:"Mahsulot",
+   name:aiAnalysis?aiAnalysis.split("\n")[0].slice(0,70):"Mahsulot",
+   aiAnalysis:aiAnalysis,
    img:data,
    feature:feature,
    out:false
   });
+
   await drawProducts();
-  alert("Mahsulot saqlandi!");
+
+  status.textContent="";
+
+  if(aiAnalysis){
+   alert("Gemini tahlili:\n\n"+aiAnalysis+"\n\nMahsulot saqlandi!");
+  }else{
+   alert("Mahsulot AI-siz saqlandi.");
+  }
+
  }catch(e){
-  alert("Suratni qo‘shib bo‘lmadi. Boshqa suratni sinab ko‘ring.");
+  alert("Suratni qo‘shishda xatolik: "+e.message);
+  status.textContent="";
  }
- photo.value="";
+
+ $("photo").value="";
 };
 
-search.oninput=async()=>{
- const q=search.value.toLowerCase().trim();
- if(!q){drawCats();return;}
+$("search").oninput=async()=>{
+ const q=$("search").value.toLowerCase().trim();
+
+ if(!q){
+  drawCats();
+  return;
+ }
+
  await refresh();
+
  const matching=products.filter(p=>
   (p.cat||"").toLowerCase().includes(q)||
-  (p.name||"").toLowerCase().includes(q)
+  (p.name||"").toLowerCase().includes(q)||
+  (p.aiAnalysis||"").toLowerCase().includes(q)
  );
- const el=document.getElementById("categories");
+
+ const el=$("categories");
  el.innerHTML="";
+
  matching.forEach(p=>{
   const b=document.createElement("button");
   b.className="category";
-  b.textContent="📦 "+p.cat+" — "+p.name;
+  b.textContent="📦 "+p.cat+" — "+(p.name||"Mahsulot");
   b.onclick=()=>openCat(p.cat);
   el.append(b);
  });
- if(!matching.length)drawCats(q);
+
+ if(!matching.length){
+  drawCats(q);
+ }
 };
 
 function showBackup(){
- hideAll();backup.classList.remove("hidden");
+ hideAll();
+ $("backup").classList.remove("hidden");
 }
+
 async function exportBackup(){
- await refresh();
- const blob=new Blob([JSON.stringify({
-  app:"Behzod Market",version:2,products
- })],{type:"application/json"});
- const url=URL.createObjectURL(blob);
- const a=document.createElement("a");
- a.href=url;a.download="BehzodMarket_zaxira.json";
- a.click();
- setTimeout(()=>URL.revokeObjectURL(url),3000);
-}
-restoreFile.onchange=async()=>{
- const f=restoreFile.files[0];if(!f)return;
  try{
-  const data=JSON.parse(await f.text());
-  if(!Array.isArray(data.products))throw Error();
-  if(!confirm("Zaxira nusxasidagi mahsulotlar mavjudlariga qo‘shilsinmi?"))return;
-  for(const p of data.products){
-   if(p.img)await put({...p,id:Date.now()+Math.random()});
+  await refresh();
+
+  const blob=new Blob([JSON.stringify({
+   app:"Behzod Market",
+   version:2,
+   products:products
+  })],{type:"application/json"});
+
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+
+  a.href=url;
+  a.download="BehzodMarket_zaxira.json";
+  a.click();
+
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+ }catch(e){
+  alert("Zaxira nusxasini yaratib bo‘lmadi: "+e.message);
+ }
+}
+
+$("restoreFile").onchange=async()=>{
+ const file=$("restoreFile").files[0];
+ if(!file)return;
+
+ try{
+  const data=JSON.parse(await file.text());
+
+  if(!Array.isArray(data.products)){
+   throw new Error("Zaxira fayli noto‘g‘ri");
   }
+
+  if(!confirm("Zaxiradagi mahsulotlar mavjud mahsulotlarga qo‘shilsinmi?")){
+   $("restoreFile").value="";
+   return;
+  }
+
+  for(const p of data.products){
+   if(p.img){
+    await put({
+     ...p,
+     id:Date.now()+Math.random()
+    });
+   }
+  }
+
   await refresh();
   alert("Zaxira nusxasi tiklandi.");
- }catch(e){alert("Bu zaxira fayli noto‘g‘ri yoki buzilgan.");}
- restoreFile.value="";
+
+ }catch(e){
+  alert("Zaxira faylini tiklashda xatolik: "+e.message);
+ }
+
+ $("restoreFile").value="";
 };
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzk2hWITuTcoiZee44DQfzE-XLqY9DgOgMQ8RQ6rfuDCAY_2Yex3SmQG3IcD-WdM-sF/exec"
 </script>
 </body>
 </html>
